@@ -1,8 +1,11 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6">
-    <div>
-      <label for="requester_name" class="block text-sm font-medium text-gray-700">
-        Requester Name
+  <form @submit.prevent="handleSubmit" class="grid grid-cols-12 gap-6">
+    <div class="col-span-3">
+      <label
+        for="requester_name"
+        class="block text-sm font-medium text-gray-700"
+      >
+        Nome do Solicitante
       </label>
       <input
         id="requester_name"
@@ -17,9 +20,9 @@
       </p>
     </div>
 
-    <div>
+    <div class="col-span-3">
       <label for="destination" class="block text-sm font-medium text-gray-700">
-        Destination
+        Destino
       </label>
       <input
         id="destination"
@@ -35,10 +38,13 @@
       </p>
     </div>
 
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 col-span-4">
       <div>
-        <label for="departure_date" class="block text-sm font-medium text-gray-700">
-          Departure Date
+        <label
+          for="departure_date"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Data de Partida
         </label>
         <input
           id="departure_date"
@@ -55,8 +61,11 @@
       </div>
 
       <div>
-        <label for="return_date" class="block text-sm font-medium text-gray-700">
-          Return Date
+        <label
+          for="return_date"
+          class="block text-sm font-medium text-gray-700"
+        >
+          Data de Retorno
         </label>
         <input
           id="return_date"
@@ -73,7 +82,7 @@
       </div>
     </div>
 
-    <div class="flex justify-end space-x-3">
+    <div class="self-end col-span-2">
       <button
         v-if="showCancel"
         type="button"
@@ -82,97 +91,112 @@
       >
         Cancel
       </button>
-      <button
-        type="submit"
-        :disabled="loading"
-        class="btn btn-primary"
-      >
-        {{ loading ? 'Submitting...' : submitLabel }}
+      <button type="submit" :disabled="loading" class="btn btn-primary">
+        {{ loading ? "Submitting..." : submitLabel }}
       </button>
     </div>
   </form>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { format, addDays } from 'date-fns'
+import { ref, computed, watch } from "vue";
+import { format, addDays } from "date-fns";
 
 const props = defineProps({
   initialData: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   submitLabel: {
     type: String,
-    default: 'Submit'
+    default: "Submit",
   },
   showCancel: {
     type: Boolean,
-    default: true
-  }
-})
+    default: true,
+  },
+});
 
-const emit = defineEmits(['submit', 'cancel'])
+const emit = defineEmits(["submit", "cancel"]);
 
 const formData = ref({
-  requester_name: props.initialData.requester_name || '',
-  destination: props.initialData.destination || '',
-  departure_date: props.initialData.departure_date || '',
-  return_date: props.initialData.return_date || '',
-})
+  requester_name: props.initialData.requester_name || "",
+  destination: props.initialData.destination || "",
+  departure_date: props.initialData.departure_date || "",
+  return_date: props.initialData.return_date || "",
+});
 
-const errors = ref({})
+const errors = ref({});
 
 const minDate = computed(() => {
-  return format(addDays(new Date(), 1), 'yyyy-MM-dd')
-})
+  return format(addDays(new Date(), 1), "yyyy-MM-dd");
+});
 
-watch(() => props.initialData, (newData) => {
-  if (newData) {
-    formData.value = {
-      requester_name: newData.requester_name || '',
-      destination: newData.destination || '',
-      departure_date: newData.departure_date || '',
-      return_date: newData.return_date || '',
+watch(
+  () => props.initialData,
+  (newData) => {
+    if (newData) {
+      formData.value = {
+        requester_name: newData.requester_name || "",
+        destination: newData.destination || "",
+        departure_date: newData.departure_date || "",
+        return_date: newData.return_date || "",
+      };
     }
-  }
-}, { deep: true })
+  },
+  { deep: true },
+);
 
 function validateForm() {
-  errors.value = {}
+  errors.value = {};
 
   if (!formData.value.requester_name) {
-    errors.value.requester_name = 'Requester name is required'
+    errors.value.requester_name = "Requester name is required";
   }
 
   if (!formData.value.destination) {
-    errors.value.destination = 'Destination is required'
+    errors.value.destination = "Destination is required";
   }
 
   if (!formData.value.departure_date) {
-    errors.value.departure_date = 'Departure date is required'
+    errors.value.departure_date = "Departure date is required";
   }
 
   if (!formData.value.return_date) {
-    errors.value.return_date = 'Return date is required'
+    errors.value.return_date = "Return date is required";
   }
 
   if (formData.value.departure_date && formData.value.return_date) {
-    if (new Date(formData.value.return_date) <= new Date(formData.value.departure_date)) {
-      errors.value.return_date = 'Return date must be after departure date'
+    if (
+      new Date(formData.value.return_date) <=
+      new Date(formData.value.departure_date)
+    ) {
+      errors.value.return_date = "Return date must be after departure date";
     }
   }
 
-  return Object.keys(errors.value).length === 0
+  return Object.keys(errors.value).length === 0;
 }
 
 function handleSubmit() {
   if (validateForm()) {
-    emit('submit', { ...formData.value })
+    emit("submit", { ...formData.value });
   }
 }
+
+function resetForm() {
+  formData.value = {
+    requester_name: props.initialData.requester_name || "",
+    destination: "",
+    departure_date: "",
+    return_date: "",
+  };
+  errors.value = {};
+}
+
+defineExpose({ resetForm });
 </script>

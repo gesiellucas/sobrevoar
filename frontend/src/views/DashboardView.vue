@@ -1,234 +1,198 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <header class="bg-white shadow">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-gray-900">Trip Requests</h1>
-        <div class="flex items-center space-x-4">
-          <span class="text-sm text-gray-600">
-            {{ authStore.user?.name }}
-            <span v-if="authStore.isAdmin" class="text-primary-600 font-medium">(Admin)</span>
-          </span>
-          <button @click="handleLogout" class="btn btn-secondary">
-            Logout
-          </button>
-        </div>
-      </div>
-    </header>
+    <DashboardHeader
+      title="Trip Requests"
+      :stats="periodStatsLabels"
+      :user="authStore.user"
+      :is-admin="authStore.isAdmin"
+      @logout="handleLogout"
+    />
 
     <!-- Main content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Actions bar -->
-      <div class="mb-6 flex justify-between items-center">
-        <router-link :to="{ name: 'trip-request-create' }" class="btn btn-primary">
-          + New Trip Request
-        </router-link>
+      <!-- Create Trip Form -->
+      <div class="mb-8">
+        <CreateTripCard
+          ref="createTripCardRef"
+          :initial-data="{ requester_name: authStore.user?.name }"
+          @submit="handleCreateTrip"
+          @success="loadTripRequests"
+        />
       </div>
 
-      <!-- Filters -->
-      <div class="card mb-6">
-        <h3 class="text-lg font-medium mb-4">Filters</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select v-model="filters.status" class="input" @change="applyFilters">
-              <option value="">All</option>
-              <option value="requested">Requested</option>
-              <option value="approved">Approved</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-            <input
-              v-model="filters.destination"
-              type="text"
-              class="input"
-              placeholder="Search destination..."
-              @input="debounceFilter"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              v-model="filters.start_date"
-              type="date"
-              class="input"
-              @change="applyFilters"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              v-model="filters.end_date"
-              type="date"
-              class="input"
-              @change="applyFilters"
-            />
-          </div>
+      <!-- Content with sidebar filters -->
+      <div class="flex gap-6">
+        <!-- Filters Sidebar -->
+        <div class="w-64 flex-shrink-0">
+          <TripFilters
+            v-model="filters"
+            :has-active-filters="tripStore.hasFilters"
+            @update:model-value="debounceFilter"
+            @clear="clearFilters"
+          />
         </div>
 
-        <div v-if="tripStore.hasFilters" class="mt-4">
-          <button @click="clearFilters" class="text-sm text-primary-600 hover:text-primary-700">
-            Clear all filters
-          </button>
+        <!-- Data Table -->
+        <div class="flex-1 min-w-0">
+          <TripTable
+            :data="tripStore.tripRequests"
+            :loading="tripStore.loading"
+            :pagination="tripStore.pagination"
+            :is-admin="authStore.isAdmin"
+            @page-change="handlePageChange"
+            @cancel="handleDelete"
+            @approve="(id) => updateStatus(id, 'approved')"
+            @reject="(id) => updateStatus(id, 'cancelled')"
+          />
         </div>
       </div>
-
-      <!-- Data Table -->
-      <DataTable
-        :columns="columns"
-        :data="tripStore.tripRequests"
-        :loading="tripStore.loading"
-        :pagination="tripStore.pagination"
-        @page-change="handlePageChange"
-      >
-        <template #cell-status="{ item }">
-          <StatusBadge :status="item.status" />
-        </template>
-
-        <template #cell-departure_date="{ item }">
-          {{ formatDate(item.departure_date) }}
-        </template>
-
-        <template #cell-return_date="{ item }">
-          {{ formatDate(item.return_date) }}
-        </template>
-
-        <template #actions="{ item }">
-          <div class="flex space-x-2">
-            <router-link
-              :to="{ name: 'trip-request-details', params: { id: item.id } }"
-              class="text-primary-600 hover:text-primary-900"
-            >
-              View
-            </router-link>
-
-            <button
-              v-if="item.status === 'requested' && !authStore.isAdmin"
-              @click="handleDelete(item.id)"
-              class="text-red-600 hover:text-red-900"
-            >
-              Cancel
-            </button>
-
-            <div v-if="authStore.isAdmin" class="flex space-x-2">
-              <button
-                v-if="item.status !== 'approved'"
-                @click="updateStatus(item.id, 'approved')"
-                class="text-green-600 hover:text-green-900"
-              >
-                Approve
-              </button>
-              <button
-                v-if="item.status !== 'cancelled'"
-                @click="updateStatus(item.id, 'cancelled')"
-                class="text-red-600 hover:text-red-900"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        </template>
-      </DataTable>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useTripStore } from '@/stores/trip'
-import { format } from 'date-fns'
-import DataTable from '@/components/DataTable.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import { useTripStore } from "@/stores/trip";
+import {
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  isToday,
+  isWithinInterval,
+  parseISO,
+} from "date-fns";
+import {
+  DashboardHeader,
+  CreateTripCard,
+  TripFilters,
+  TripTable,
+} from "@/components/dashboard";
 
-const router = useRouter()
-const authStore = useAuthStore()
-const tripStore = useTripStore()
+const router = useRouter();
+const authStore = useAuthStore();
+const tripStore = useTripStore();
+
+const periodStatsLabels = computed(() => [
+  { label: "Hoje", value: periodStats.value.today },
+  { label: "Semana", value: periodStats.value.week },
+  { label: "Mês", value: periodStats.value.month },
+]);
 
 const filters = ref({
-  status: '',
-  destination: '',
-  start_date: '',
-  end_date: ''
-})
+  status: [],
+  user: "",
+  destination: "",
+  start_date: "",
+  end_date: "",
+});
 
-const columns = [
-  { key: 'id', label: 'ID' },
-  { key: 'requester_name', label: 'Requester' },
-  { key: 'destination', label: 'Destination' },
-  { key: 'departure_date', label: 'Departure' },
-  { key: 'return_date', label: 'Return' },
-  { key: 'status', label: 'Status' },
-]
+const createTripCardRef = ref(null);
 
-let debounceTimeout = null
+const today = new Date();
+const weekStart = computed(() => startOfWeek(today, { weekStartsOn: 0 }));
+const weekEnd = computed(() => endOfWeek(today, { weekStartsOn: 0 }));
+const monthStart = computed(() => startOfMonth(today));
+const monthEnd = computed(() => endOfMonth(today));
+
+const periodStats = computed(() => {
+  const trips = tripStore.tripRequests;
+
+  const todayCount = trips.filter((trip) => {
+    const departureDate = parseISO(trip.departure_date);
+    return isToday(departureDate);
+  }).length;
+
+  const weekCount = trips.filter((trip) => {
+    const departureDate = parseISO(trip.departure_date);
+    return isWithinInterval(departureDate, {
+      start: weekStart.value,
+      end: weekEnd.value,
+    });
+  }).length;
+
+  const monthCount = trips.filter((trip) => {
+    const departureDate = parseISO(trip.departure_date);
+    return isWithinInterval(departureDate, {
+      start: monthStart.value,
+      end: monthEnd.value,
+    });
+  }).length;
+
+  return {
+    today: todayCount,
+    week: weekCount,
+    month: monthCount,
+  };
+});
+
+let debounceTimeout = null;
 
 onMounted(() => {
-  authStore.initializeAuth()
-  loadTripRequests()
-})
+  authStore.initializeAuth();
+  loadTripRequests();
+});
 
 async function loadTripRequests() {
-  await tripStore.fetchTripRequests()
+  await tripStore.fetchTripRequests();
 }
 
 function applyFilters() {
-  tripStore.setFilters(filters.value)
-  loadTripRequests()
+  tripStore.setFilters(filters.value);
+  loadTripRequests();
 }
 
 function debounceFilter() {
-  clearTimeout(debounceTimeout)
+  clearTimeout(debounceTimeout);
   debounceTimeout = setTimeout(() => {
-    applyFilters()
-  }, 500)
+    applyFilters();
+  }, 500);
 }
 
 function clearFilters() {
   filters.value = {
-    status: '',
-    destination: '',
-    start_date: '',
-    end_date: ''
-  }
-  tripStore.clearFilters()
-  loadTripRequests()
+    status: [],
+    user: "",
+    destination: "",
+    start_date: "",
+    end_date: "",
+  };
+  tripStore.clearFilters();
+  loadTripRequests();
 }
 
 function handlePageChange(page) {
-  tripStore.fetchTripRequests(page)
+  tripStore.fetchTripRequests(page);
+}
+
+async function handleCreateTrip(formData) {
+  await tripStore.createTripRequest(formData);
+  loadTripRequests();
 }
 
 async function handleDelete(id) {
-  if (confirm('Are you sure you want to cancel this trip request?')) {
+  if (confirm("Are you sure you want to cancel this trip request?")) {
     try {
-      await tripStore.deleteTripRequest(id)
+      await tripStore.deleteTripRequest(id);
     } catch (error) {
-      alert('Failed to cancel trip request')
+      alert("Failed to cancel trip request");
     }
   }
 }
 
 async function updateStatus(id, status) {
   try {
-    await tripStore.updateTripRequestStatus(id, status)
+    await tripStore.updateTripRequestStatus(id, status);
   } catch (error) {
-    alert('Failed to update status')
+    alert("Failed to update status");
   }
 }
 
 async function handleLogout() {
-  await authStore.logout()
-  router.push({ name: 'login' })
-}
-
-function formatDate(date) {
-  return format(new Date(date), 'MMM dd, yyyy')
+  await authStore.logout();
+  router.push({ name: "login" });
 }
 </script>
