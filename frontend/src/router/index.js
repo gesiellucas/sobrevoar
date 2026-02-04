@@ -31,6 +31,18 @@ const router = createRouter({
       name: 'trip-request-details',
       component: () => import('@/views/TripRequestDetailsView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/destinations',
+      name: 'destinations',
+      component: () => import('@/views/DestinationsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
+    },
+    {
+      path: '/travelers',
+      name: 'travelers',
+      component: () => import('@/views/TravelersView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true }
     }
   ]
 })
@@ -42,6 +54,8 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
+    next({ name: 'dashboard' })
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next({ name: 'dashboard' })
   } else {
     next()

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(docker-compose ps:*)",
       "Bash(docker:*)",
-      "Bash(docker-compose:*)"
+      "Bash(docker-compose:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

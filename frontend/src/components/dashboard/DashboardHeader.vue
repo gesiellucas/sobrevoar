@@ -2,7 +2,46 @@
   <header class="bg-white shadow">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex justify-between items-center">
-        <h2 class="text-2xl font-bold text-gray-900">{{ title }}</h2>
+        <div class="flex items-center gap-6">
+          <h2 class="text-2xl font-bold text-gray-900">{{ title }}</h2>
+
+          <!-- Admin Navigation -->
+          <nav v-if="isAdmin" class="flex items-center gap-1">
+            <router-link
+              to="/dashboard"
+              class="px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+              :class="[
+                $route.path === '/dashboard'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              ]"
+            >
+              Viagens
+            </router-link>
+            <router-link
+              to="/destinations"
+              class="px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+              :class="[
+                $route.path === '/destinations'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              ]"
+            >
+              Destinos
+            </router-link>
+            <router-link
+              to="/travelers"
+              class="px-3 py-2 text-sm font-medium rounded-lg transition-colors"
+              :class="[
+                $route.path === '/travelers'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              ]"
+            >
+              Viajantes
+            </router-link>
+          </nav>
+        </div>
 
         <section class="flex items-center gap-6">
           <!-- Stats row -->
@@ -64,6 +103,23 @@
                 <div class="text-xs text-gray-500">
                   {{ user?.email }}
                 </div>
+              </div>
+              <!-- Admin Links in Dropdown (mobile) -->
+              <div v-if="isAdmin" class="sm:hidden border-b border-gray-100">
+                <router-link
+                  to="/destinations"
+                  @click="dropdownOpen = false"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Gerenciar Destinos
+                </router-link>
+                <router-link
+                  to="/travelers"
+                  @click="dropdownOpen = false"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Gerenciar Viajantes
+                </router-link>
               </div>
               <button
                 @click="handleLogout"

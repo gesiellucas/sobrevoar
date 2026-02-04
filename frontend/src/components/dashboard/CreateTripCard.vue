@@ -18,6 +18,7 @@
       ref="formRef"
       :initial-data="initialData"
       :loading="loading"
+      :is-admin="isAdmin"
       submit-label="Criar Solicitação"
       :show-cancel="false"
       @submit="handleSubmit"
@@ -33,6 +34,10 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({})
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   }
 })
 

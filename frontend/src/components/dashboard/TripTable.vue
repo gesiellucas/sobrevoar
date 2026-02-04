@@ -6,16 +6,24 @@
     :pagination="pagination"
     @page-change="$emit('page-change', $event)"
   >
+    <template #cell-traveler="{ item }">
+      {{ item.traveler?.name || '-' }}
+    </template>
+
+    <template #cell-destination="{ item }">
+      {{ item.destination?.full_location || '-' }}
+    </template>
+
     <template #cell-status="{ item }">
       <StatusBadge :status="item.status" />
     </template>
 
-    <template #cell-departure_date="{ item }">
-      {{ formatDate(item.departure_date) }}
+    <template #cell-departure_datetime="{ item }">
+      {{ formatDatetime(item.departure_datetime) }}
     </template>
 
-    <template #cell-return_date="{ item }">
-      {{ formatDate(item.return_date) }}
+    <template #cell-return_datetime="{ item }">
+      {{ formatDatetime(item.return_datetime) }}
     </template>
 
     <template #actions="{ item }">
@@ -57,7 +65,7 @@
 </template>
 
 <script setup>
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 
@@ -84,14 +92,19 @@ defineEmits(['page-change', 'cancel', 'approve', 'reject'])
 
 const columns = [
   { key: 'id', label: 'ID' },
-  { key: 'requester_name', label: 'Solicitante' },
+  { key: 'traveler', label: 'Viajante' },
   { key: 'destination', label: 'Destino' },
-  { key: 'departure_date', label: 'Partida' },
-  { key: 'return_date', label: 'Retorno' },
+  { key: 'departure_datetime', label: 'Partida' },
+  { key: 'return_datetime', label: 'Retorno' },
   { key: 'status', label: 'Status' }
 ]
 
-function formatDate(date) {
-  return format(new Date(date), 'dd/MM/yyyy')
+function formatDatetime(datetime) {
+  if (!datetime) return '-'
+  try {
+    return format(parseISO(datetime), 'dd/MM/yyyy HH:mm')
+  } catch {
+    return datetime
+  }
 }
 </script>
