@@ -6,8 +6,73 @@
       :stats="periodStatsLabels"
       :user="authStore.user"
       :is-admin="authStore.isAdmin"
+      :search-loading="searchLoading"
       @logout="handleLogout"
+      @search="handleSearchById"
     />
+
+    <!-- Search Result -->
+    <div v-if="searchResult" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">
+              Resultado da Pesquisa - ID #{{ searchResult.id }}
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span class="text-gray-600">Viajante:</span>
+                <p class="font-medium">{{ searchResult.traveler?.name || 'N/A' }}</p>
+              </div>
+              <div>
+                <span class="text-gray-600">Destino:</span>
+                <p class="font-medium">{{ searchResult.destination?.name || 'N/A' }}</p>
+              </div>
+              <div>
+                <span class="text-gray-600">Status:</span>
+                <span
+                  :class="[
+                    'inline-block px-2 py-1 rounded-full text-xs font-medium',
+                    searchResult.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    searchResult.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  ]"
+                >
+                  {{ statusLabel(searchResult.status) }}
+                </span>
+              </div>
+              <div>
+                <span class="text-gray-600">Partida:</span>
+                <p class="font-medium">{{ formatDate(searchResult.departure_datetime) }}</p>
+              </div>
+            </div>
+          </div>
+          <button
+            @click="clearSearchResult"
+            class="text-blue-600 hover:text-blue-800"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Error -->
+    <div v-if="searchError" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex justify-between items-center">
+        <p class="text-red-800">{{ searchError }}</p>
+        <button
+          @click="searchError = null"
+          class="text-red-600 hover:text-red-800"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
 
     <!-- Main content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -67,7 +132,7 @@
 
           <!-- Table -->
           <TripTable
-            :data="tripStore.tripRequests"
+            :data="filteredTripRequests"
             :loading="tripStore.loading"
             :pagination="tripStore.pagination"
             :is-admin="authStore.isAdmin"
@@ -126,6 +191,13 @@ const statusCounts = computed(() => {
   };
 });
 
+// Filtra localmente pelo status da tab selecionada
+const filteredTripRequests = computed(() => {
+  const trips = tripStore.tripRequests;
+  if (!activeTab.value) return trips;
+  return trips.filter((t) => t.status === activeTab.value);
+});
+
 const periodStatsLabels = computed(() => [
   { label: "Hoje", value: periodStats.value.today },
   { label: "Semana", value: periodStats.value.week },
@@ -140,7 +212,10 @@ const filters = ref({
   end_date: "",
 });
 
-const createTripCardRef = ref(null);
+const createTripCardRef = ref(null)
+const searchResult = ref(null)
+const searchError = ref(null)
+const searchLoading = ref(false);
 
 const today = new Date();
 const weekStart = computed(() => startOfWeek(today, { weekStartsOn: 0 }));
@@ -185,14 +260,12 @@ const periodStats = computed(() => {
 let debounceTimeout = null;
 
 onMounted(() => {
-  authStore.initializeAuth();
   loadTripRequests();
 });
 
 function setActiveTab(status) {
   activeTab.value = status;
-  filters.value.status = status ? [status] : [];
-  applyFilters();
+  // Filtragem local - não precisa fazer requisição
 }
 
 async function loadTripRequests() {
@@ -222,6 +295,51 @@ function clearFilters() {
   };
   tripStore.clearFilters();
   loadTripRequests();
+}
+
+async function handleSearchById(id) {
+  if (!id) {
+    clearSearchResult();
+    return;
+  }
+
+  searchError.value = null;
+  searchResult.value = null;
+  searchLoading.value = true;
+
+  try {
+    const result = await tripStore.fetchTripRequest(id);
+    searchResult.value = result;
+  } catch (error) {
+    searchError.value = `Viagem com ID #${id} não encontrada.`;
+  } finally {
+    searchLoading.value = false;
+  }
+}
+
+function clearSearchResult() {
+  searchResult.value = null;
+  searchError.value = null;
+}
+
+function statusLabel(status) {
+  const labels = {
+    requested: 'Solicitado',
+    approved: 'Aprovado',
+    cancelled: 'Cancelado'
+  };
+  return labels[status] || status;
+}
+
+function formatDate(dateString) {
+  if (!dateString) return 'N/A';
+  const date = parseISO(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 function handlePageChange(page) {

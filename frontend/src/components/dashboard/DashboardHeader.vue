@@ -5,6 +5,46 @@
         <div class="flex items-center gap-6">
           <h2 class="text-2xl font-bold text-gray-900">{{ title }}</h2>
 
+          <!-- Search -->
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <input
+                v-model="searchValue"
+                type="text"
+                :placeholder="searchPlaceholder"
+                :disabled="searchLoading"
+                :class="[
+                  'px-3 py-1.5 pl-9 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed',
+                  searchMode === 'text' ? 'w-64' : 'w-40'
+                ]"
+                @keyup.enter="handleSearchEnter"
+                @input="handleSearchInput"
+              />
+              <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <button
+                v-if="searchValue && !searchLoading"
+                @click="clearSearch"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <!-- Loading spinner -->
+              <div
+                v-if="searchLoading"
+                class="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <svg class="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            </div>
+          </div>
+
           <!-- Admin Navigation -->
           <nav v-if="isAdmin" class="flex items-center gap-1">
             <router-link
@@ -174,12 +214,47 @@ const props = defineProps({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  searchLoading: {
+    type: Boolean,
+    default: false
+  },
+  searchPlaceholder: {
+    type: String,
+    default: 'Buscar por ID...'
+  },
+  searchMode: {
+    type: String,
+    default: 'id', // 'id' ou 'text'
+    validator: (value) => ['id', 'text'].includes(value)
   }
 })
 
-const emit = defineEmits(['logout'])
+const emit = defineEmits(['logout', 'search'])
 
 const dropdownOpen = ref(false)
+const searchValue = ref('')
+let debounceTimeout = null
+
+function handleSearchEnter() {
+  if (props.searchMode === 'id' && searchValue.value.trim()) {
+    emit('search', searchValue.value.trim())
+  }
+}
+
+function handleSearchInput() {
+  if (props.searchMode === 'text') {
+    clearTimeout(debounceTimeout)
+    debounceTimeout = setTimeout(() => {
+      emit('search', searchValue.value.trim())
+    }, 300)
+  }
+}
+
+function clearSearch() {
+  searchValue.value = ''
+  emit('search', props.searchMode === 'id' ? null : '')
+}
 
 const userInitials = computed(() => {
   const name = props.user?.name || ''

@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/services/api'
 
+// Cache duration in milliseconds (5 minutes)
+const CACHE_DURATION = 5 * 60 * 1000
+
 export const useDestinationStore = defineStore('destination', () => {
   const destinations = ref([])
   const countries = ref([])
@@ -15,6 +18,11 @@ export const useDestinationStore = defineStore('destination', () => {
     total: 0,
   })
 
+  // Cache control
+  const lastFetched = ref(null)
+  const lastFetchParams = ref(null)
+  const allDestinationsFetched = ref(null)
+
   const destinationOptions = computed(() =>
     destinations.value.map(d => ({
       value: d.id,
@@ -22,7 +30,23 @@ export const useDestinationStore = defineStore('destination', () => {
     }))
   )
 
-  async function fetchDestinations(page = 1, params = {}) {
+  function isCacheValid(page, params) {
+    if (!lastFetched.value) return false
+
+    const now = Date.now()
+    const cacheExpired = now - lastFetched.value > CACHE_DURATION
+
+    const currentParams = JSON.stringify({ page, ...params })
+    const paramsChanged = currentParams !== lastFetchParams.value
+
+    return !cacheExpired && !paramsChanged && destinations.value.length > 0
+  }
+
+  async function fetchDestinations(page = 1, params = {}, forceRefresh = false) {
+    if (!forceRefresh && isCacheValid(page, params)) {
+      return { data: destinations.value }
+    }
+
     loading.value = true
     error.value = null
 
@@ -39,6 +63,9 @@ export const useDestinationStore = defineStore('destination', () => {
           total: response.data.meta.total,
         }
       }
+
+      lastFetched.value = Date.now()
+      lastFetchParams.value = JSON.stringify({ page, ...params })
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to fetch destinations'
       throw err
@@ -47,7 +74,14 @@ export const useDestinationStore = defineStore('destination', () => {
     }
   }
 
-  async function fetchAllDestinations() {
+  async function fetchAllDestinations(forceRefresh = false) {
+    // Return cached if valid
+    if (!forceRefresh && allDestinationsFetched.value &&
+        Date.now() - allDestinationsFetched.value < CACHE_DURATION &&
+        destinations.value.length > 0) {
+      return { data: destinations.value }
+    }
+
     loading.value = true
     error.value = null
 
@@ -56,12 +90,19 @@ export const useDestinationStore = defineStore('destination', () => {
         params: { all: true },
       })
       destinations.value = response.data.data
+      allDestinationsFetched.value = Date.now()
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to fetch destinations'
       throw err
     } finally {
       loading.value = false
     }
+  }
+
+  function invalidateCache() {
+    lastFetched.value = null
+    lastFetchParams.value = null
+    allDestinationsFetched.value = null
   }
 
   async function fetchCountries() {
@@ -90,6 +131,7 @@ export const useDestinationStore = defineStore('destination', () => {
     try {
       const response = await api.post('/destinations', data)
       destinations.value.unshift(response.data.data)
+      invalidateCache()
       return response.data.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to create destination'
@@ -109,6 +151,7 @@ export const useDestinationStore = defineStore('destination', () => {
       if (index !== -1) {
         destinations.value[index] = response.data.data
       }
+      invalidateCache()
       return response.data.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to update destination'
@@ -125,6 +168,7 @@ export const useDestinationStore = defineStore('destination', () => {
     try {
       await api.delete(`/destinations/${id}`)
       destinations.value = destinations.value.filter(d => d.id !== id)
+      invalidateCache()
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to delete destination'
       throw err
@@ -148,5 +192,6 @@ export const useDestinationStore = defineStore('destination', () => {
     createDestination,
     updateDestination,
     deleteDestination,
+    invalidateCache,
   }
 })

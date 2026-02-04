@@ -35,11 +35,10 @@
           range
           :format="dateFormat"
           :preview-format="dateFormat"
-          locale="pt-BR"
+          :format-locale="datePickerLocale"
           placeholder="Selecione o período"
           auto-apply
           :enable-time-picker="false"
-          :teleport="true"
           @update:model-value="handleDateRangeChange"
         />
         <div
@@ -65,8 +64,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { differenceInDays, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
+
+const datePickerLocale = ptBR
 
 const props = defineProps({
   modelValue: {

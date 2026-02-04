@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/services/api'
 
+// Cache duration in milliseconds (5 minutes)
+const CACHE_DURATION = 5 * 60 * 1000
+
 export const useTravelerStore = defineStore('traveler', () => {
   const travelers = ref([])
   const loading = ref(false)
@@ -12,6 +15,10 @@ export const useTravelerStore = defineStore('traveler', () => {
     per_page: 15,
     total: 0,
   })
+
+  // Cache control
+  const lastFetched = ref(null)
+  const lastFetchParams = ref(null)
 
   const activeTravelers = computed(() =>
     travelers.value.filter(t => t.is_active)
@@ -25,7 +32,23 @@ export const useTravelerStore = defineStore('traveler', () => {
     }))
   )
 
-  async function fetchTravelers(page = 1, params = {}) {
+  function isCacheValid(page, params) {
+    if (!lastFetched.value) return false
+
+    const now = Date.now()
+    const cacheExpired = now - lastFetched.value > CACHE_DURATION
+
+    const currentParams = JSON.stringify({ page, ...params })
+    const paramsChanged = currentParams !== lastFetchParams.value
+
+    return !cacheExpired && !paramsChanged && travelers.value.length > 0
+  }
+
+  async function fetchTravelers(page = 1, params = {}, forceRefresh = false) {
+    if (!forceRefresh && isCacheValid(page, params)) {
+      return { data: travelers.value }
+    }
+
     loading.value = true
     error.value = null
 
@@ -42,12 +65,20 @@ export const useTravelerStore = defineStore('traveler', () => {
           total: response.data.meta.total,
         }
       }
+
+      lastFetched.value = Date.now()
+      lastFetchParams.value = JSON.stringify({ page, ...params })
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to fetch travelers'
       throw err
     } finally {
       loading.value = false
     }
+  }
+
+  function invalidateCache() {
+    lastFetched.value = null
+    lastFetchParams.value = null
   }
 
   async function createTraveler(data) {
@@ -57,6 +88,7 @@ export const useTravelerStore = defineStore('traveler', () => {
     try {
       const response = await api.post('/travelers', data)
       travelers.value.unshift(response.data.data)
+      invalidateCache()
       return response.data.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to create traveler'
@@ -76,6 +108,7 @@ export const useTravelerStore = defineStore('traveler', () => {
       if (index !== -1) {
         travelers.value[index] = response.data.data
       }
+      invalidateCache()
       return response.data.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to update traveler'
@@ -95,6 +128,7 @@ export const useTravelerStore = defineStore('traveler', () => {
       if (index !== -1) {
         travelers.value[index].is_active = false
       }
+      invalidateCache()
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to deactivate traveler'
       throw err
@@ -113,6 +147,7 @@ export const useTravelerStore = defineStore('traveler', () => {
       if (index !== -1) {
         travelers.value[index] = response.data.data
       }
+      invalidateCache()
       return response.data.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Failed to restore traveler'
@@ -134,5 +169,6 @@ export const useTravelerStore = defineStore('traveler', () => {
     updateTraveler,
     deleteTraveler,
     restoreTraveler,
+    invalidateCache,
   }
 })

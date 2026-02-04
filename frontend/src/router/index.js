@@ -51,6 +51,11 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
 
+  // Initialize auth from localStorage on first navigation
+  if (!authStore.isAuthenticated) {
+    authStore.initializeAuth()
+  }
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {

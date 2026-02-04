@@ -75,10 +75,8 @@
           :enable-time-picker="true"
           :format="dateTimeFormat"
           :preview-format="dateTimeFormat"
-          locale="pt-BR"
+          :format-locale="datePickerLocale"
           placeholder="Selecione data e hora"
-          auto-apply
-          :teleport="true"
           :class="{ 'dp-error': errors.departure_datetime }"
         />
         <p v-if="errors.departure_datetime" class="mt-1 text-sm text-red-600">
@@ -96,10 +94,8 @@
           :enable-time-picker="true"
           :format="dateTimeFormat"
           :preview-format="dateTimeFormat"
-          locale="pt-BR"
+          :format-locale="datePickerLocale"
           placeholder="Selecione data e hora"
-          auto-apply
-          :teleport="true"
           :class="{ 'dp-error': errors.return_datetime }"
         />
         <p v-if="errors.return_datetime" class="mt-1 text-sm text-red-600">
@@ -127,10 +123,13 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import { addHours } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { VueDatePicker } from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import { useDestinationStore } from "@/stores/destination";
 import { useTravelerStore } from "@/stores/traveler";
+
+const datePickerLocale = ptBR;
 
 const props = defineProps({
   initialData: {
