@@ -2,7 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Models\Destination;
+use App\Models\Traveler;
+use App\Models\TripRequest;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -11,42 +13,42 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class TripRequestFactory extends Factory
 {
     /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = TripRequest::class;
+
+    /**
      * Define the model's default state.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
-        $departureDate = fake()->dateTimeBetween('now', '+6 months');
-        $returnDate = fake()->dateTimeBetween($departureDate, '+1 year');
+        $departureDatetime = fake()->dateTimeBetween('now', '+6 months');
+        $returnDatetime = fake()->dateTimeBetween($departureDatetime, '+1 year');
+
+        $descriptions = [
+            'Viagem de negócios para reunião com cliente.',
+            'Participação em conferência anual.',
+            'Treinamento técnico na filial.',
+            'Visita a fornecedores.',
+            'Feira de tecnologia.',
+            'Reunião de planejamento estratégico.',
+            'Auditoria em unidade regional.',
+            'Workshop de capacitação.',
+            'Evento de lançamento de produto.',
+            'Encontro com parceiros comerciais.',
+            null,
+        ];
 
         return [
-            'user_id' => User::factory(),
-            'requester_name' => fake()->name(),
-            'destination' => fake()->randomElement([
-                'Paris, France',
-                'Tokyo, Japan',
-                'New York, USA',
-                'London, UK',
-                'Barcelona, Spain',
-                'Dubai, UAE',
-                'Sydney, Australia',
-                'Singapore',
-                'Rome, Italy',
-                'Amsterdam, Netherlands',
-                'Berlin, Germany',
-                'Seoul, South Korea',
-                'Bangkok, Thailand',
-                'Istanbul, Turkey',
-                'Los Angeles, USA',
-                'Miami, USA',
-                'Vancouver, Canada',
-                'Mexico City, Mexico',
-                'Buenos Aires, Argentina',
-                'Lisbon, Portugal',
-            ]),
-            'departure_date' => $departureDate,
-            'return_date' => $returnDate,
+            'description' => fake()->randomElement($descriptions),
+            'traveler_id' => Traveler::factory(),
+            'destination_id' => Destination::factory(),
+            'departure_datetime' => $departureDatetime,
+            'return_datetime' => $returnDatetime,
             'status' => fake()->randomElement(['requested', 'approved', 'cancelled']),
         ];
     }
@@ -78,6 +80,26 @@ class TripRequestFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'cancelled',
+        ]);
+    }
+
+    /**
+     * Associate with a specific traveler.
+     */
+    public function forTraveler(Traveler $traveler): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'traveler_id' => $traveler->id,
+        ]);
+    }
+
+    /**
+     * Associate with a specific destination.
+     */
+    public function forDestination(Destination $destination): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'destination_id' => $destination->id,
         ]);
     }
 }
