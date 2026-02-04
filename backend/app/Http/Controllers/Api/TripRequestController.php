@@ -7,7 +7,7 @@ use App\Http\Requests\StoreTripRequestRequest;
 use App\Http\Requests\UpdateTripRequestStatusRequest;
 use App\Http\Resources\TripRequestResource;
 use App\Models\TripRequest;
-use App\Notifications\TripRequestStatusChanged;
+use App\Models\UserNotification;
 use Illuminate\Http\Request;
 
 class TripRequestController extends Controller
@@ -17,11 +17,11 @@ class TripRequestController extends Controller
      */
     public function index(Request $request)
     {
-        $query = TripRequest::with('user');
+        $query = TripRequest::with(['traveler.user', 'destination']);
 
-        // If not admin, only show own requests
+        // If not admin, only show own requests (through traveler)
         if (!$request->user()->is_admin) {
-            $query->where('user_id', $request->user()->id);
+            $query->byUser($request->user()->id);
         }
 
         // Apply filters
@@ -29,8 +29,12 @@ class TripRequestController extends Controller
             $query->status($request->status);
         }
 
-        if ($request->has('destination')) {
-            $query->destination($request->destination);
+        if ($request->has('destination_id')) {
+            $query->byDestination($request->destination_id);
+        }
+
+        if ($request->has('traveler_id')) {
+            $query->byTraveler($request->traveler_id);
         }
 
         if ($request->has('start_date') && $request->has('end_date')) {
@@ -49,16 +53,34 @@ class TripRequestController extends Controller
      */
     public function store(StoreTripRequestRequest $request)
     {
+        $travelerId = null;
+
+        // Admin can create trip for any traveler
+        if ($request->user()->is_admin && $request->filled('traveler_id')) {
+            $travelerId = $request->traveler_id;
+        } else {
+            // Get traveler for current user
+            $traveler = $request->user()->travelers()->where('is_active', true)->first();
+
+            if (!$traveler) {
+                return response()->json([
+                    'message' => 'User does not have an active traveler profile.',
+                ], 422);
+            }
+
+            $travelerId = $traveler->id;
+        }
+
         $tripRequest = TripRequest::create([
-            'user_id' => $request->user()->id,
-            'requester_name' => $request->requester_name,
-            'destination' => $request->destination,
-            'departure_date' => $request->departure_date,
-            'return_date' => $request->return_date,
+            'traveler_id' => $travelerId,
+            'destination_id' => $request->destination_id,
+            'description' => $request->description,
+            'departure_datetime' => $request->departure_datetime,
+            'return_datetime' => $request->return_datetime,
             'status' => 'requested',
         ]);
 
-        return new TripRequestResource($tripRequest->load('user'));
+        return new TripRequestResource($tripRequest->load(['traveler.user', 'destination']));
     }
 
     /**
@@ -67,11 +89,13 @@ class TripRequestController extends Controller
     public function show(Request $request, TripRequest $tripRequest)
     {
         // Check authorization
-        if (!$request->user()->is_admin && $tripRequest->user_id !== $request->user()->id) {
+        $isOwner = $tripRequest->traveler->user_id === $request->user()->id;
+
+        if (!$request->user()->is_admin && !$isOwner) {
             abort(403, 'Unauthorized action.');
         }
 
-        return new TripRequestResource($tripRequest->load('user'));
+        return new TripRequestResource($tripRequest->load(['traveler.user', 'destination']));
     }
 
     /**
@@ -80,7 +104,7 @@ class TripRequestController extends Controller
     public function update(Request $request, TripRequest $tripRequest)
     {
         // Only the owner can update
-        if ($tripRequest->user_id !== $request->user()->id) {
+        if ($tripRequest->traveler->user_id !== $request->user()->id) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -90,15 +114,15 @@ class TripRequestController extends Controller
         }
 
         $validated = $request->validate([
-            'requester_name' => 'sometimes|string|max:255',
-            'destination' => 'sometimes|string|max:255',
-            'departure_date' => 'sometimes|date|after:today',
-            'return_date' => 'sometimes|date|after:departure_date',
+            'destination_id' => 'sometimes|exists:destinations,id',
+            'description' => 'sometimes|nullable|string',
+            'departure_datetime' => 'sometimes|date|after:now',
+            'return_datetime' => 'sometimes|date|after:departure_datetime',
         ]);
 
         $tripRequest->update($validated);
 
-        return new TripRequestResource($tripRequest->load('user'));
+        return new TripRequestResource($tripRequest->load(['traveler.user', 'destination']));
     }
 
     /**
@@ -107,7 +131,7 @@ class TripRequestController extends Controller
     public function destroy(Request $request, TripRequest $tripRequest)
     {
         // Only the owner can cancel
-        if ($tripRequest->user_id !== $request->user()->id) {
+        if ($tripRequest->traveler->user_id !== $request->user()->id) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -135,11 +159,25 @@ class TripRequestController extends Controller
             'status' => $newStatus,
         ]);
 
-        // Send notification to requester
+        // Create notification for the user
         if ($oldStatus !== $newStatus) {
-            $tripRequest->user->notify(new TripRequestStatusChanged($tripRequest, $newStatus));
+            $user = $tripRequest->traveler->user;
+            $destination = $tripRequest->destination->full_location;
+
+            $statusMessages = [
+                'approved' => "Sua solicitação de viagem para {$destination} foi aprovada.",
+                'cancelled' => "Sua solicitação de viagem para {$destination} foi cancelada.",
+            ];
+
+            if (isset($statusMessages[$newStatus])) {
+                UserNotification::create([
+                    'user_id' => $user->id,
+                    'message' => $statusMessages[$newStatus],
+                    'is_checked' => false,
+                ]);
+            }
         }
 
-        return new TripRequestResource($tripRequest->load('user'));
+        return new TripRequestResource($tripRequest->load(['traveler.user', 'destination']));
     }
 }

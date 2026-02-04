@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -48,10 +50,34 @@ class User extends Authenticatable
     }
 
     /**
-     * Get all trip requests for the user.
+     * Get all travelers associated with this user.
      */
-    public function tripRequests()
+    public function travelers(): HasMany
     {
-        return $this->hasMany(TripRequest::class);
+        return $this->hasMany(Traveler::class);
+    }
+
+    /**
+     * Get all notifications for this user.
+     */
+    public function userNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
+    /**
+     * Get all trip requests through travelers.
+     */
+    public function tripRequests(): HasManyThrough
+    {
+        return $this->hasManyThrough(TripRequest::class, Traveler::class);
+    }
+
+    /**
+     * Get unread notifications count.
+     */
+    public function getUnreadNotificationsCountAttribute(): int
+    {
+        return $this->userNotifications()->unchecked()->count();
     }
 }

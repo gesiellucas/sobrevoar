@@ -16,20 +16,32 @@ class TripRequestResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'user_id' => $this->user_id,
-            'requester_name' => $this->requester_name,
-            'destination' => $this->destination,
-            'departure_date' => $this->departure_date->format('Y-m-d'),
-            'return_date' => $this->return_date->format('Y-m-d'),
+            'traveler_id' => $this->traveler_id,
+            'destination_id' => $this->destination_id,
+            'description' => $this->description,
+            'departure_datetime' => $this->departure_datetime->toISOString(),
+            'return_datetime' => $this->return_datetime->toISOString(),
             'status' => $this->status,
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
-            'user' => [
-                'id' => $this->user->id,
-                'name' => $this->user->name,
-                'email' => $this->user->email,
-                'is_admin' => $this->user->is_admin,
-            ],
+            'traveler' => $this->whenLoaded('traveler', fn () => [
+                'id' => $this->traveler->id,
+                'name' => $this->traveler->name,
+                'is_active' => $this->traveler->is_active,
+                'user' => $this->when($this->traveler->relationLoaded('user'), fn () => [
+                    'id' => $this->traveler->user->id,
+                    'name' => $this->traveler->user->name,
+                    'email' => $this->traveler->user->email,
+                    'is_admin' => $this->traveler->user->is_admin,
+                ]),
+            ]),
+            'destination' => $this->whenLoaded('destination', fn () => [
+                'id' => $this->destination->id,
+                'city' => $this->destination->city,
+                'state' => $this->destination->state,
+                'country' => $this->destination->country,
+                'full_location' => $this->destination->full_location,
+            ]),
         ];
     }
 }

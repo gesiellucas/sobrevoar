@@ -21,12 +21,19 @@ class StoreTripRequestRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'requester_name' => 'required|string|max:255',
-            'destination' => 'required|string|max:255',
-            'departure_date' => 'required|date|after:today',
-            'return_date' => 'required|date|after:departure_date',
+        $rules = [
+            'destination_id' => 'required|exists:destinations,id',
+            'description' => 'nullable|string',
+            'departure_datetime' => 'required|date|after:now',
+            'return_datetime' => 'required|date|after:departure_datetime',
         ];
+
+        // Admin can specify traveler_id
+        if ($this->user()->is_admin) {
+            $rules['traveler_id'] = 'sometimes|exists:travelers,id';
+        }
+
+        return $rules;
     }
 
     /**
@@ -35,12 +42,13 @@ class StoreTripRequestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'requester_name.required' => 'Requester name is required',
-            'destination.required' => 'Destination is required',
-            'departure_date.required' => 'Departure date is required',
-            'departure_date.after' => 'Departure date must be in the future',
-            'return_date.required' => 'Return date is required',
-            'return_date.after' => 'Return date must be after departure date',
+            'traveler_id.exists' => 'O viajante selecionado não existe.',
+            'destination_id.required' => 'O destino é obrigatório.',
+            'destination_id.exists' => 'O destino selecionado não existe.',
+            'departure_datetime.required' => 'A data de ida é obrigatória.',
+            'departure_datetime.after' => 'A data de ida deve ser no futuro.',
+            'return_datetime.required' => 'A data de retorno é obrigatória.',
+            'return_datetime.after' => 'A data de retorno deve ser após a data de ida.',
         ];
     }
 }

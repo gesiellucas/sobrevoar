@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TripRequest extends Model
 {
@@ -15,11 +16,11 @@ class TripRequest extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
-        'requester_name',
-        'destination',
-        'departure_date',
-        'return_date',
+        'description',
+        'traveler_id',
+        'destination_id',
+        'departure_datetime',
+        'return_datetime',
         'status',
     ];
 
@@ -31,17 +32,33 @@ class TripRequest extends Model
     protected function casts(): array
     {
         return [
-            'departure_date' => 'date',
-            'return_date' => 'date',
+            'departure_datetime' => 'datetime',
+            'return_datetime' => 'datetime',
         ];
     }
 
     /**
-     * Get the user that owns the trip request.
+     * Get the traveler that owns this trip request.
+     */
+    public function traveler(): BelongsTo
+    {
+        return $this->belongsTo(Traveler::class);
+    }
+
+    /**
+     * Get the destination for this trip request.
+     */
+    public function destination(): BelongsTo
+    {
+        return $this->belongsTo(Destination::class);
+    }
+
+    /**
+     * Get the user through the traveler relationship.
      */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->traveler?->user;
     }
 
     /**
@@ -49,6 +66,10 @@ class TripRequest extends Model
      */
     public function scopeStatus($query, $status)
     {
+        if (is_array($status)) {
+            return $query->whereIn('status', $status);
+        }
+
         return $query->where('status', $status);
     }
 
@@ -57,14 +78,32 @@ class TripRequest extends Model
      */
     public function scopeDateRange($query, $startDate, $endDate)
     {
-        return $query->whereBetween('departure_date', [$startDate, $endDate]);
+        return $query->whereBetween('departure_datetime', [$startDate, $endDate]);
     }
 
     /**
      * Scope a query to filter by destination.
      */
-    public function scopeDestination($query, $destination)
+    public function scopeByDestination($query, $destinationId)
     {
-        return $query->where('destination', 'like', "%{$destination}%");
+        return $query->where('destination_id', $destinationId);
+    }
+
+    /**
+     * Scope a query to filter by traveler.
+     */
+    public function scopeByTraveler($query, $travelerId)
+    {
+        return $query->where('traveler_id', $travelerId);
+    }
+
+    /**
+     * Scope a query to filter by user (through traveler).
+     */
+    public function scopeByUser($query, $userId)
+    {
+        return $query->whereHas('traveler', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        });
     }
 }

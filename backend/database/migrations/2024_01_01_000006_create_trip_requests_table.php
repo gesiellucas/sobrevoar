@@ -13,21 +13,22 @@ return new class extends Migration
     {
         Schema::create('trip_requests', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('requester_name');
-            $table->string('destination');
-            $table->date('departure_date');
-            $table->date('return_date');
+            $table->text('description')->nullable();
+            $table->foreignId('traveler_id')->constrained()->onDelete('cascade');
+            $table->foreignId('destination_id')->constrained()->onDelete('cascade');
+            $table->dateTime('departure_datetime');
+            $table->dateTime('return_datetime');
             $table->enum('status', ['requested', 'approved', 'cancelled'])->default('requested');
             $table->timestamps();
 
             // Indexes for better performance
-            $table->index('user_id');
+            $table->index('traveler_id');
+            $table->index('destination_id');
             $table->index('status');
-            $table->index('departure_date');
-            $table->index('return_date');
-            $table->index('destination');
-            $table->index(['user_id', 'status']);
+            $table->index('departure_datetime');
+            $table->index('return_datetime');
+            $table->index(['traveler_id', 'status']);
+            $table->index(['destination_id', 'status']);
         });
     }
 
