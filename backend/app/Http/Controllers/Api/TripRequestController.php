@@ -43,7 +43,7 @@ class TripRequestController extends Controller
 
         // Pagination
         $perPage = $request->input('per_page', 15);
-        $tripRequests = $query->latest()->paginate($perPage);
+        $tripRequests = $query->orderBy('departure_datetime', 'desc')->paginate($perPage);
 
         return TripRequestResource::collection($tripRequests);
     }
