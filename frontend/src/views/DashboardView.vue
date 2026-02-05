@@ -11,10 +11,9 @@
           @success="loadTripRequests" />
       </div>
 
-      <!-- Content with sidebar filters -->
-      <div class="flex gap-6">
+      <section class="flex flex-col lg:flex-row gap-6">
         <!-- Filters Sidebar -->
-        <div class="w-64 flex-shrink-0">
+        <div class="w-full lg:w-64 flex-shrink-0">
           <TripFilters v-model="filters" :has-active-filters="tripStore.hasFilters" @update:model-value="debounceFilter"
             @clear="clearFilters" />
         </div>
@@ -77,7 +76,7 @@
             :is-admin="authStore.isAdmin" @page-change="handlePageChange" @cancel="handleDelete"
             @approve="(id) => updateStatus(id, 'approved')" @reject="(id) => updateStatus(id, 'cancelled')" />
         </div>
-      </div>
+      </section>
     </main>
   </div>
 </template>

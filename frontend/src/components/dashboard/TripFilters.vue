@@ -1,63 +1,36 @@
 <template>
   <div class="card sticky top-8">
     <h3 class="text-lg font-medium mb-4">Filtros</h3>
-    <div class="space-y-5">
+    <div class="space-y-0 lg:space-y-5 flex flex-row lg:flex-col gap-4">
 
       <!-- User Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
-        <input
-          :value="modelValue.user"
-          @input="updateFilter('user', $event.target.value)"
-          type="text"
-          class="input"
-          placeholder="Buscar por usuário..."
-        />
+        <input :value="modelValue.user" @input="updateFilter('user', $event.target.value)" type="text" class="input"
+          placeholder="Buscar por usuário..." />
       </div>
 
       <!-- Destination Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
-        <input
-          :value="modelValue.destination"
-          @input="updateFilter('destination', $event.target.value)"
-          type="text"
-          class="input"
-          placeholder="Buscar destino..."
-        />
+        <input :value="modelValue.destination" @input="updateFilter('destination', $event.target.value)" type="text"
+          class="input" placeholder="Buscar destino..." />
       </div>
 
       <!-- Date Range Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Período da Viagem</label>
-        <VueDatePicker
-          v-model="dateRange"
-          range
-          :format="dateFormat"
-          :preview-format="dateFormat"
-          :format-locale="datePickerLocale"
-          :locale="ptBR"
-          :action-row="actionRowConfig"
-          select-text="Selecionar"
-          cancel-text="Cancelar"
-          placeholder="Selecione o período"
-          auto-apply
-          :enable-time-picker="false"
-          @update:model-value="handleDateRangeChange"
-        />
-        <div
-          v-if="tripDuration"
-          class="text-xs text-gray-600 bg-gray-100 rounded px-2 py-1 mt-2"
-        >
+        <VueDatePicker v-model="dateRange" range :format="dateFormat" :preview-format="dateFormat"
+          :format-locale="datePickerLocale" :locale="ptBR" :action-row="actionRowConfig" select-text="Selecionar"
+          cancel-text="Cancelar" placeholder="Selecione o período" auto-apply :enable-time-picker="false"
+          @update:model-value="handleDateRangeChange" />
+        <div v-if="tripDuration" class="text-xs text-gray-600 bg-gray-100 rounded px-2 py-1 mt-2">
           Duração: {{ tripDuration }}
         </div>
       </div>
 
       <div v-if="hasActiveFilters" class="pt-2">
-        <button
-          @click="handleClear"
-          class="text-sm text-primary-600 hover:text-primary-700"
-        >
+        <button @click="handleClear" class="text-sm text-primary-600 hover:text-primary-700">
           Limpar filtros
         </button>
       </div>
