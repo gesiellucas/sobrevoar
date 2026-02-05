@@ -44,7 +44,7 @@ class DestinationController extends Controller
         }
 
         $perPage = $request->input('per_page', 15);
-        $destinations = $query->orderBy('country')->orderBy('city')->paginate($perPage);
+        $destinations = $query->orderBy('country')->orderBy('state')->orderBy('city')->paginate($perPage);
 
         return DestinationResource::collection($destinations);
     }

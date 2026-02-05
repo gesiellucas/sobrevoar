@@ -41,8 +41,10 @@
           Data de Partida
         </label>
         <VueDatePicker v-model="formData.departure_datetime" :min-date="minDate" :enable-time-picker="true"
-          :format="dateTimeFormat" :preview-format="dateTimeFormat" :format-locale="datePickerLocale"
-          placeholder="Selecione data e hora" :class="{ 'dp-error': errors.departure_datetime }" />
+          :format="dateTimeFormat" :preview-format="dateTimeFormat" :format-locale="datePickerLocale" :locale="ptBR"
+          :action-row="actionRowConfig" :text-input-options="textInputOptions" select-text="Selecionar"
+          cancel-text="Cancelar" placeholder="Selecione data e hora"
+          :class="{ 'dp-error': errors.departure_datetime }" />
         <p v-if="errors.departure_datetime" class="mt-1 text-sm text-red-600">
           {{ errors.departure_datetime }}
         </p>
@@ -54,8 +56,9 @@
         </label>
         <VueDatePicker v-model="formData.return_datetime" :min-date="formData.departure_datetime || minDate"
           :enable-time-picker="true" :format="dateTimeFormat" :preview-format="dateTimeFormat"
-          :format-locale="datePickerLocale" placeholder="Selecione data e hora"
-          :class="{ 'dp-error': errors.return_datetime }" />
+          :format-locale="datePickerLocale" :locale="ptBR" :action-row="actionRowConfig"
+          :text-input-options="textInputOptions" select-text="Selecionar" cancel-text="Cancelar"
+          placeholder="Selecione data e hora" :class="{ 'dp-error': errors.return_datetime }" />
         <p v-if="errors.return_datetime" class="mt-1 text-sm text-red-600">
           {{ errors.return_datetime }}
         </p>
@@ -96,7 +99,24 @@ import "@vuepic/vue-datepicker/dist/main.css";
 import { useDestinationStore } from "@/stores/destination";
 import { useTravelerStore } from "@/stores/traveler";
 
+// Usando o locale ptBR do date-fns para tradução completa
 const datePickerLocale = ptBR;
+
+// Tradução dos textos de ação do VueDatePicker
+const actionRowConfig = {
+  showSelect: true,
+  showCancel: true,
+  showNow: false,
+  showPreview: true,
+  selectBtnLabel: 'Selecionar',
+  cancelBtnLabel: 'Cancelar',
+};
+
+const textInputOptions = {
+  selectBtnLabel: 'Selecionar',
+  cancelBtnLabel: 'Cancelar',
+  nowButtonLabel: 'Agora'
+};
 
 const props = defineProps({
   initialData: {

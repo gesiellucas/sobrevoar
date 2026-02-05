@@ -36,6 +36,10 @@
           :format="dateFormat"
           :preview-format="dateFormat"
           :format-locale="datePickerLocale"
+          :locale="ptBR"
+          :action-row="actionRowConfig"
+          select-text="Selecionar"
+          cancel-text="Cancelar"
           placeholder="Selecione o período"
           auto-apply
           :enable-time-picker="false"
@@ -68,7 +72,16 @@ import { ptBR } from 'date-fns/locale'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 
+// Usando o locale ptBR do date-fns para tradução completa
 const datePickerLocale = ptBR
+
+// Tradução dos textos de ação do VueDatePicker
+const actionRowConfig = {
+  showSelect: true,
+  showCancel: true,
+  showNow: false,
+  showPreview: true
+}
 
 const props = defineProps({
   modelValue: {
