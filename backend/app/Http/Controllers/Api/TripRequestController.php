@@ -41,6 +41,14 @@ class TripRequestController extends Controller
             $query->dateRange($request->start_date, $request->end_date);
         }
 
+        if ($request->has('traveler_name')) {
+            $query->ByTravelerName($request->traveler_name);
+        }
+
+        if($request->has('destination_name')) {
+            $query->byDestinationName($request->destination);
+        }
+
         // Pagination
         $perPage = $request->input('per_page', 15);
         $tripRequests = $query->orderBy('departure_datetime', 'desc')->paginate($perPage);

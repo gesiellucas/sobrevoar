@@ -21,6 +21,11 @@ class TravelerController extends Controller
     {
         $query = Traveler::with('user');
 
+        // If not admin, only show own traveler profile
+        if (!$request->user()->is_admin) {
+            $query->where('user_id', $request->user()->id);
+        }
+
         // Filter by active status
         if ($request->has('is_active')) {
             $query->where('is_active', $request->boolean('is_active'));
@@ -49,6 +54,11 @@ class TravelerController extends Controller
      */
     public function store(StoreTravelerRequest $request)
     {
+        // Only admins can create travelers
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         return DB::transaction(function () use ($request) {
             // Create user for login
             $user = User::create([
@@ -72,8 +82,13 @@ class TravelerController extends Controller
     /**
      * Display the specified traveler.
      */
-    public function show(Traveler $traveler)
+    public function show(Request $request, Traveler $traveler)
     {
+        // Check authorization: admin can see all, user can only see own profile
+        if (!$request->user()->is_admin && $traveler->user_id !== $request->user()->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
         return new TravelerResource($traveler->load('user'));
     }
 
@@ -82,6 +97,11 @@ class TravelerController extends Controller
      */
     public function update(UpdateTravelerRequest $request, Traveler $traveler)
     {
+        // Only admins can update travelers
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         return DB::transaction(function () use ($request, $traveler) {
             // Update traveler
             $traveler->update([
@@ -124,6 +144,11 @@ class TravelerController extends Controller
      */
     public function destroy(Request $request, Traveler $traveler)
     {
+        // Only admins can delete travelers
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         // Check if traveler has pending trip requests
         $pendingRequests = $traveler->tripRequests()
             ->where('status', 'requested')
@@ -147,8 +172,13 @@ class TravelerController extends Controller
     /**
      * Restore a deactivated traveler.
      */
-    public function restore(Traveler $traveler)
+    public function restore(Request $request, Traveler $traveler)
     {
+        // Only admins can restore travelers
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $traveler->update(['is_active' => true]);
 
         return new TravelerResource($traveler->load('user'));

@@ -28,6 +28,11 @@ const badgeClass = computed(() => {
 })
 
 const statusText = computed(() => {
-  return props.status.charAt(0).toUpperCase() + props.status.slice(1)
+  const translations = {
+    requested: 'Solicitado',
+    approved: 'Aprovado',
+    cancelled: 'Cancelado'
+  }
+  return translations[props.status] || props.status
 })
 </script>

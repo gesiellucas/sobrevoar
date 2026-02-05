@@ -106,4 +106,18 @@ class TripRequest extends Model
             $q->where('user_id', $userId);
         });
     }
+
+    public function scopeByTravelerName($query, $travelerName)
+    {
+        return $query->whereHas('traveler', function ($q) use ($travelerName) {
+            $q->where('name', 'like', '%' . $travelerName . '%');
+        });
+    }
+
+    public function scopeByDestinationName($query, $destinationName)
+    {
+        return $query->whereHas('destination', function ($q) use ($destinationName) {
+            $q->where('name', 'like', '%' . $destinationName . '%');
+        });
+    }
 }

@@ -54,6 +54,11 @@ class DestinationController extends Controller
      */
     public function store(StoreDestinationRequest $request)
     {
+        // Only admins can create destinations
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $destination = Destination::create($request->validated());
 
         return new DestinationResource($destination);
@@ -72,6 +77,11 @@ class DestinationController extends Controller
      */
     public function update(UpdateDestinationRequest $request, Destination $destination)
     {
+        // Only admins can update destinations
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $destination->update($request->validated());
 
         return new DestinationResource($destination);
@@ -80,8 +90,13 @@ class DestinationController extends Controller
     /**
      * Remove the specified destination.
      */
-    public function destroy(Destination $destination)
+    public function destroy(Request $request, Destination $destination)
     {
+        // Only admins can delete destinations
+        if (!$request->user()->is_admin) {
+            abort(403, 'Unauthorized action.');
+        }
+
         // Check if destination has trip requests
         $tripRequestsCount = $destination->tripRequests()->count();
 

@@ -5,7 +5,10 @@
       "Bash(docker:*)",
       "Bash(docker-compose:*)",
       "Bash(npm install:*)",
-      "Bash(composer require:*)"
+      "Bash(composer require:*)",
+      "Bash(php artisan config:clear:*)",
+      "Bash(php artisan cache:clear:*)",
+      "Bash(php artisan test:*)"
     ]
   }
 }

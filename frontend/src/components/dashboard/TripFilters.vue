@@ -6,15 +6,15 @@
       <!-- User Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
-        <input :value="modelValue.user" @input="updateFilter('user', $event.target.value)" type="text" class="input"
-          placeholder="Buscar por usuário..." />
+        <input :value="modelValue.traveler_name" @input="updateFilter('traveler_name', $event.target.value)" type="text"
+          class="input" placeholder="Buscar por usuário..." />
       </div>
 
       <!-- Destination Filter -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Destino</label>
-        <input :value="modelValue.destination" @input="updateFilter('destination', $event.target.value)" type="text"
-          class="input" placeholder="Buscar destino..." />
+        <input :value="modelValue.destination_name" @input="updateFilter('destination_name', $event.target.value)"
+          type="text" class="input" placeholder="Buscar destino..." />
       </div>
 
       <!-- Date Range Filter -->

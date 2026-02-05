@@ -15,7 +15,23 @@
     </template>
 
     <template #cell-status="{ item }">
-      <StatusBadge :status="item.status" />
+      <!-- Se status for requested e for admin, mostrar botões de aprovar/rejeitar -->
+      <div v-if="item.status === 'requested' && isAdmin" class="flex space-x-2">
+        <button
+          @click="$emit('approve', item.id)"
+          class="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
+        >
+          Aprovar
+        </button>
+        <button
+          @click="$emit('reject', item.id)"
+          class="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition-colors"
+        >
+          Rejeitar
+        </button>
+      </div>
+      <!-- Caso contrário, mostrar o badge normal -->
+      <StatusBadge v-else :status="item.status" />
     </template>
 
     <template #cell-departure_datetime="{ item }">
@@ -28,46 +44,39 @@
 
     <template #actions="{ item }">
       <div class="flex space-x-2">
-        <router-link
-          :to="{ name: 'trip-request-details', params: { id: item.id } }"
+        <button
+          @click="openModal(item)"
           class="text-primary-600 hover:text-primary-900"
         >
           Ver
-        </router-link>
+        </button>
 
+        <!-- Só permite cancelar se não for aprovado -->
         <button
-          v-if="item.status === 'requested' && !isAdmin"
+          v-if="item.status !== 'approved' && !isAdmin"
           @click="$emit('cancel', item.id)"
           class="text-red-600 hover:text-red-900"
         >
           Cancelar
         </button>
-
-        <div v-if="isAdmin" class="flex space-x-2">
-          <button
-            v-if="item.status !== 'approved'"
-            @click="$emit('approve', item.id)"
-            class="text-green-600 hover:text-green-900"
-          >
-            Aprovar
-          </button>
-          <button
-            v-if="item.status !== 'cancelled'"
-            @click="$emit('reject', item.id)"
-            class="text-red-600 hover:text-red-900"
-          >
-            Rejeitar
-          </button>
-        </div>
       </div>
     </template>
   </DataTable>
+
+  <!-- Modal de detalhes -->
+  <TripDetailsModal
+    :is-open="isModalOpen"
+    :trip="selectedTrip"
+    @close="closeModal"
+  />
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { format, parseISO } from 'date-fns'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
+import TripDetailsModal from '@/components/TripDetailsModal.vue'
 
 defineProps({
   data: {
@@ -98,6 +107,20 @@ const columns = [
   { key: 'return_datetime', label: 'Retorno' },
   { key: 'status', label: 'Status' }
 ]
+
+// Modal state
+const isModalOpen = ref(false)
+const selectedTrip = ref(null)
+
+function openModal(trip) {
+  selectedTrip.value = trip
+  isModalOpen.value = true
+}
+
+function closeModal() {
+  isModalOpen.value = false
+  selectedTrip.value = null
+}
 
 function formatDatetime(datetime) {
   if (!datetime) return '-'
