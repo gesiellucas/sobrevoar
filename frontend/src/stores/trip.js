@@ -22,6 +22,7 @@ export const useTripStore = defineStore('trip', () => {
     destination: '',
     start_date: '',
     end_date: '',
+    id: '',
   })
 
   // Cache control
@@ -31,7 +32,7 @@ export const useTripStore = defineStore('trip', () => {
 
   const hasFilters = computed(() => {
     return !!(filters.value.status || filters.value.destination ||
-              filters.value.start_date || filters.value.end_date)
+              filters.value.start_date || filters.value.end_date || filters.value.id)
   })
 
   function isCacheValid(page) {
@@ -209,6 +210,7 @@ export const useTripStore = defineStore('trip', () => {
       destination: '',
       start_date: '',
       end_date: '',
+      id: '',
     }
   }
 

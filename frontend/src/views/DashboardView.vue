@@ -3,76 +3,10 @@
     <!-- Header -->
     <DashboardHeader
       title="Trip Requests"
-      :stats="periodStatsLabels"
       :user="authStore.user"
       :is-admin="authStore.isAdmin"
-      :search-loading="searchLoading"
       @logout="handleLogout"
-      @search="handleSearchById"
     />
-
-    <!-- Search Result -->
-    <div v-if="searchResult" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-lg font-semibold text-blue-900 mb-2">
-              Resultado da Pesquisa - ID #{{ searchResult.id }}
-            </h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span class="text-gray-600">Viajante:</span>
-                <p class="font-medium">{{ searchResult.traveler?.name || 'N/A' }}</p>
-              </div>
-              <div>
-                <span class="text-gray-600">Destino:</span>
-                <p class="font-medium">{{ searchResult.destination?.name || 'N/A' }}</p>
-              </div>
-              <div>
-                <span class="text-gray-600">Status:</span>
-                <span
-                  :class="[
-                    'inline-block px-2 py-1 rounded-full text-xs font-medium',
-                    searchResult.status === 'approved' ? 'bg-green-100 text-green-800' :
-                    searchResult.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  ]"
-                >
-                  {{ statusLabel(searchResult.status) }}
-                </span>
-              </div>
-              <div>
-                <span class="text-gray-600">Partida:</span>
-                <p class="font-medium">{{ formatDate(searchResult.departure_datetime) }}</p>
-              </div>
-            </div>
-          </div>
-          <button
-            @click="clearSearchResult"
-            class="text-blue-600 hover:text-blue-800"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Search Error -->
-    <div v-if="searchError" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex justify-between items-center">
-        <p class="text-red-800">{{ searchError }}</p>
-        <button
-          @click="searchError = null"
-          class="text-red-600 hover:text-red-800"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </div>
 
     <!-- Main content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -100,34 +34,70 @@
 
         <!-- Data Table with Tabs -->
         <div class="flex-1 min-w-0">
-          <!-- Status Tabs -->
+          <!-- Status Tabs with Search -->
           <div class="bg-white rounded-t-lg border border-b-0 border-gray-200">
-            <nav class="flex" aria-label="Tabs">
-              <button
-                v-for="tab in statusTabs"
-                :key="tab.value"
-                @click="setActiveTab(tab.value)"
-                :class="[
-                  'px-6 py-3 text-sm font-medium border-b-2 transition-colors',
-                  activeTab === tab.value
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                ]"
-              >
-                {{ tab.label }}
-                <span
-                  v-if="tab.count !== undefined"
+            <div class="flex items-center justify-between px-4 py-2">
+              <nav class="flex" aria-label="Tabs">
+                <button
+                  v-for="tab in statusTabs"
+                  :key="tab.value"
+                  @click="setActiveTab(tab.value)"
                   :class="[
-                    'ml-2 px-2 py-0.5 rounded-full text-xs',
+                    'px-6 py-3 text-sm font-medium border-b-2 transition-colors',
                     activeTab === tab.value
-                      ? 'bg-blue-100 text-blue-600'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'border-blue-500 text-blue-600 bg-blue-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   ]"
                 >
-                  {{ tab.count }}
-                </span>
-              </button>
-            </nav>
+                  {{ tab.label }}
+                  <span
+                    v-if="tab.count !== undefined"
+                    :class="[
+                      'ml-2 px-2 py-0.5 rounded-full text-xs',
+                      activeTab === tab.value
+                        ? 'bg-blue-100 text-blue-600'
+                        : 'bg-gray-100 text-gray-600'
+                    ]"
+                  >
+                    {{ tab.count }}
+                  </span>
+                </button>
+              </nav>
+
+              <!-- Search -->
+              <div class="relative">
+                <input
+                  v-model="searchValue"
+                  type="text"
+                  placeholder="Buscar por ID..."
+                  :disabled="tripStore.loading"
+                  class="px-3 py-1.5 pl-9 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed w-40"
+                  @keyup.enter="handleSearchEnter"
+                />
+                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <button
+                  v-if="searchValue && !tripStore.loading"
+                  @click="clearSearch"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <!-- Loading spinner -->
+                <div
+                  v-if="tripStore.loading"
+                  class="absolute right-2 top-1/2 -translate-y-1/2"
+                >
+                  <svg class="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Table -->
@@ -152,15 +122,6 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTripStore } from "@/stores/trip";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  isToday,
-  isWithinInterval,
-  parseISO,
-} from "date-fns";
 import {
   DashboardHeader,
   CreateTripCard,
@@ -198,12 +159,6 @@ const filteredTripRequests = computed(() => {
   return trips.filter((t) => t.status === activeTab.value);
 });
 
-const periodStatsLabels = computed(() => [
-  { label: "Hoje", value: periodStats.value.today },
-  { label: "Semana", value: periodStats.value.week },
-  { label: "Mês", value: periodStats.value.month },
-]);
-
 const filters = ref({
   status: [],
   user: "",
@@ -213,49 +168,7 @@ const filters = ref({
 });
 
 const createTripCardRef = ref(null)
-const searchResult = ref(null)
-const searchError = ref(null)
-const searchLoading = ref(false);
-
-const today = new Date();
-const weekStart = computed(() => startOfWeek(today, { weekStartsOn: 0 }));
-const weekEnd = computed(() => endOfWeek(today, { weekStartsOn: 0 }));
-const monthStart = computed(() => startOfMonth(today));
-const monthEnd = computed(() => endOfMonth(today));
-
-const periodStats = computed(() => {
-  const trips = tripStore.tripRequests;
-
-  const todayCount = trips.filter((trip) => {
-    if (!trip.departure_datetime) return false;
-    const departureDate = parseISO(trip.departure_datetime);
-    return isToday(departureDate);
-  }).length;
-
-  const weekCount = trips.filter((trip) => {
-    if (!trip.departure_datetime) return false;
-    const departureDate = parseISO(trip.departure_datetime);
-    return isWithinInterval(departureDate, {
-      start: weekStart.value,
-      end: weekEnd.value,
-    });
-  }).length;
-
-  const monthCount = trips.filter((trip) => {
-    if (!trip.departure_datetime) return false;
-    const departureDate = parseISO(trip.departure_datetime);
-    return isWithinInterval(departureDate, {
-      start: monthStart.value,
-      end: monthEnd.value,
-    });
-  }).length;
-
-  return {
-    today: todayCount,
-    week: weekCount,
-    month: monthCount,
-  };
-});
+const searchValue = ref('')
 
 let debounceTimeout = null;
 
@@ -297,49 +210,53 @@ function clearFilters() {
   loadTripRequests();
 }
 
-async function handleSearchById(id) {
-  if (!id) {
-    clearSearchResult();
-    return;
+async function handleSearchEnter() {
+  if (searchValue.value.trim()) {
+    const id = searchValue.value.trim()
+
+    // Clear other filters and tabs
+    activeTab.value = ''
+    filters.value = {
+      status: [],
+      user: "",
+      destination: "",
+      start_date: "",
+      end_date: "",
+    }
+    tripStore.clearFilters()
+
+    try {
+      // Fetch specific trip request by ID
+      await tripStore.fetchTripRequest(id)
+
+      // Replace tripRequests with just this one result
+      if (tripStore.currentTripRequest) {
+        tripStore.tripRequests = [tripStore.currentTripRequest]
+        tripStore.pagination = {
+          currentPage: 1,
+          lastPage: 1,
+          perPage: 1,
+          total: 1,
+        }
+      }
+    } catch (error) {
+      // If not found, clear results and show message
+      tripStore.tripRequests = []
+      tripStore.pagination = {
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 15,
+        total: 0,
+      }
+      alert('Trip request não encontrado com ID: ' + id)
+    }
   }
-
-  searchError.value = null;
-  searchResult.value = null;
-  searchLoading.value = true;
-
-  try {
-    const result = await tripStore.fetchTripRequest(id);
-    searchResult.value = result;
-  } catch (error) {
-    searchError.value = `Viagem com ID #${id} não encontrada.`;
-  } finally {
-    searchLoading.value = false;
-  }
 }
 
-function clearSearchResult() {
-  searchResult.value = null;
-  searchError.value = null;
-}
-
-function statusLabel(status) {
-  const labels = {
-    requested: 'Solicitado',
-    approved: 'Aprovado',
-    cancelled: 'Cancelado'
-  };
-  return labels[status] || status;
-}
-
-function formatDate(dateString) {
-  if (!dateString) return 'N/A';
-  const date = parseISO(dateString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
+function clearSearch() {
+  searchValue.value = ''
+  tripStore.clearFilters()
+  loadTripRequests()
 }
 
 function handlePageChange(page) {
