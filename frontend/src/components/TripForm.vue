@@ -1,122 +1,89 @@
 <template>
   <form @submit.prevent="handleSubmit" class="grid grid-cols-12 gap-6">
-    <!-- Traveler selector (admin only) -->
-    <div v-if="isAdmin" class="col-span-3">
-      <label for="traveler_id" class="block text-sm font-medium text-gray-700">
-        Viajante
-      </label>
-      <select
-        id="traveler_id"
-        v-model="formData.traveler_id"
-        required
-        class="input mt-1"
-        :class="{ 'border-red-500': errors.traveler_id }"
-      >
-        <option value="">Selecione um viajante</option>
-        <option
-          v-for="traveler in travelers"
-          :key="traveler.value"
-          :value="traveler.value"
-        >
-          {{ traveler.label }} ({{ traveler.email }})
-        </option>
-      </select>
-      <p v-if="errors.traveler_id" class="mt-1 text-sm text-red-600">
-        {{ errors.traveler_id }}
-      </p>
-    </div>
+    <section class="col-span-4 p-2 bg-slate-100 rounded-lg shadow-xl [&>div]:p-2">
+      <!-- Traveler selector (admin only) -->
+      <div v-if="isAdmin">
+        <label for="traveler_id" class="block text-sm font-medium text-gray-700">
+          Viajante
+        </label>
+        <select id="traveler_id" v-model="formData.traveler_id" required class="input mt-1"
+          :class="{ 'border-red-500': errors.traveler_id }">
+          <option value="">Selecione um viajante</option>
+          <option v-for="traveler in travelers" :key="traveler.value" :value="traveler.value">
+            {{ traveler.label }} ({{ traveler.email }})
+          </option>
+        </select>
+        <p v-if="errors.traveler_id" class="mt-1 text-sm text-red-600">
+          {{ errors.traveler_id }}
+        </p>
+      </div>
 
-    <div :class="isAdmin ? 'col-span-3' : 'col-span-4'">
-      <label for="destination_id" class="block text-sm font-medium text-gray-700">
-        Destino
-      </label>
-      <select
-        id="destination_id"
-        v-model="formData.destination_id"
-        required
-        class="input mt-1"
-        :class="{ 'border-red-500': errors.destination_id }"
-      >
-        <option value="">Selecione um destino</option>
-        <option
-          v-for="destination in destinations"
-          :key="destination.value"
-          :value="destination.value"
-        >
-          {{ destination.label }}
-        </option>
-      </select>
-      <p v-if="errors.destination_id" class="mt-1 text-sm text-red-600">
-        {{ errors.destination_id }}
-      </p>
-    </div>
+      <div>
+        <label for="destination_id" class="block text-sm font-medium text-gray-700">
+          Destino
+        </label>
+        <select id="destination_id" v-model="formData.destination_id" required class="input mt-1"
+          :class="{ 'border-red-500': errors.destination_id }">
+          <option value="">Selecione um destino</option>
+          <option v-for="destination in destinations" :key="destination.value" :value="destination.value">
+            {{ destination.label }}
+          </option>
+        </select>
+        <p v-if="errors.destination_id" class="mt-1 text-sm text-red-600">
+          {{ errors.destination_id }}
+        </p>
+      </div>
+    </section>
 
-    <div :class="isAdmin ? 'col-span-2' : 'col-span-3'">
-      <label for="description" class="block text-sm font-medium text-gray-700">
-        Descrição (opcional)
-      </label>
-      <input
-        id="description"
-        v-model="formData.description"
-        type="text"
-        class="input mt-1"
-        placeholder="Motivo da viagem"
-      />
-    </div>
-
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 col-span-3">
+    <section class="col-span-4 p-2 bg-slate-100 rounded-lg shadow-xl [&>div]:p-2">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
           Data de Partida
         </label>
-        <VueDatePicker
-          v-model="formData.departure_datetime"
-          :min-date="minDate"
-          :enable-time-picker="true"
-          :format="dateTimeFormat"
-          :preview-format="dateTimeFormat"
-          :format-locale="datePickerLocale"
-          placeholder="Selecione data e hora"
-          :class="{ 'dp-error': errors.departure_datetime }"
-        />
+        <VueDatePicker v-model="formData.departure_datetime" :min-date="minDate" :enable-time-picker="true"
+          :format="dateTimeFormat" :preview-format="dateTimeFormat" :format-locale="datePickerLocale"
+          placeholder="Selecione data e hora" :class="{ 'dp-error': errors.departure_datetime }" />
         <p v-if="errors.departure_datetime" class="mt-1 text-sm text-red-600">
           {{ errors.departure_datetime }}
         </p>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
+        <label class="block text-sm font-medium text-slate-700 mb-1">
           Data de Retorno
         </label>
-        <VueDatePicker
-          v-model="formData.return_datetime"
-          :min-date="formData.departure_datetime || minDate"
-          :enable-time-picker="true"
-          :format="dateTimeFormat"
-          :preview-format="dateTimeFormat"
-          :format-locale="datePickerLocale"
-          placeholder="Selecione data e hora"
-          :class="{ 'dp-error': errors.return_datetime }"
-        />
+        <VueDatePicker v-model="formData.return_datetime" :min-date="formData.departure_datetime || minDate"
+          :enable-time-picker="true" :format="dateTimeFormat" :preview-format="dateTimeFormat"
+          :format-locale="datePickerLocale" placeholder="Selecione data e hora"
+          :class="{ 'dp-error': errors.return_datetime }" />
         <p v-if="errors.return_datetime" class="mt-1 text-sm text-red-600">
           {{ errors.return_datetime }}
         </p>
       </div>
-    </div>
+    </section>
 
-    <div class="self-end col-span-1">
-      <button
-        v-if="showCancel"
-        type="button"
-        @click="$emit('cancel')"
-        class="btn btn-secondary mr-2"
-      >
-        Cancelar
-      </button>
-      <button type="submit" :disabled="loading" class="btn btn-primary">
-        {{ loading ? "Enviando..." : submitLabel }}
-      </button>
-    </div>
+    <section class="col-span-4 p-2 bg-slate-100 rounded-lg shadow-xl [&>div]:p-2">
+      <div>
+        <label for="description" class="block text-sm font-medium text-slate-700">
+          Descrição (opcional)
+        </label>
+        <textarea id="description" v-model="formData.description" class="input mt-1"
+          placeholder="Motivo da viagem"></textarea>
+      </div>
+
+      <div>
+        <section class="flex justify-center">
+          <button v-if="showCancel" type="button" @click="$emit('cancel')" class="btn btn-secondary inline-block">
+            Cancelar
+          </button>
+          <button type="submit" :disabled="loading" class="btn btn-primary inline-block">
+            {{ loading ? "Enviando..." : submitLabel }}
+          </button>
+        </section>
+      </div>
+    </section>
+
+
   </form>
 </template>
 
